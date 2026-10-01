@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kalkulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700&family=Share+Tech+Mono&display=swap">
+<style>
+:root{
+  --page:#dde3ea; --ink:#1d2433;
+  --body:#2f3e5c; --lcd:#c9d8b6; --lcd-ink:#26331f;
+  --key:#f2f0eb; --key-ink:#1d2433; --op:#e0a526; --eq:#d9792b; --clr:#b8c2d6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#141a26;--ink:#e8ecf3}}
+:root[data-theme="dark"]{--page:#141a26;--ink:#e8ecf3}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--page);color:var(--ink);font-family:Sora,system-ui,sans-serif;display:grid;place-items:center;padding:16px}
+.calc{width:100%;max-width:340px;background:var(--body);border-radius:22px;padding:18px;box-shadow:0 18px 40px rgba(20,30,50,.28)}
+.lcd{background:var(--lcd);color:var(--lcd-ink);border-radius:10px;padding:12px 14px;margin-bottom:16px;box-shadow:inset 0 3px 8px rgba(0,0,0,.22);min-height:104px;display:flex;flex-direction:column;justify-content:space-between;font-family:"Share Tech Mono",ui-monospace,monospace}
+.lcd.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#status{font-size:14px;min-height:18px;text-align:right;opacity:.75}
+#screen{font-size:44px;line-height:1.1;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:clip;direction:rtl;unicode-bidi:plaintext}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.keys button{font:700 20px Sora,system-ui,sans-serif;height:58px;border:0;border-radius:12px;background:var(--key);color:var(--key-ink);cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.28);transition:transform .06s,box-shadow .06s}
+.keys button:active{transform:translateY(3px);box-shadow:0 0 0 rgba(0,0,0,.28)}
+.keys button:focus-visible,dialog button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.keys .op{background:var(--op)} .keys .clr{background:var(--clr)} .keys .eq{background:var(--eq);color:#fff}
+dialog{border:0;border-radius:18px;padding:26px 24px 22px;max-width:340px;width:calc(100% - 32px);background:#fff;color:#1d2433;text-align:center;font-family:Sora,system-ui,sans-serif}
+dialog::backdrop{background:rgba(15,22,36,.62);backdrop-filter:blur(3px)}
+dialog[open]{animation:pop .22s ease-out}
+@keyframes pop{from{transform:scale(.92);opacity:0}}
+dialog h2{margin:0 0 6px;font-size:22px}
+dialog p{margin:0 0 14px;font-size:14px;line-height:1.5;color:#4a5468}
+.badge{display:inline-block;background:var(--op);color:#2a1d00;font-weight:700;font-size:13px;border-radius:999px;padding:4px 12px;margin-bottom:12px}
+dialog ul{list-style:none;margin:0 0 16px;padding:0;text-align:left;font-size:14px;line-height:1.9}
+dialog li::before{content:"✓";color:var(--eq);font-weight:700;margin-right:8px}
+.price{font-size:30px;font-weight:700;margin:0 0 14px}
+.price small{font-size:14px;font-weight:500;color:#4a5468}
+dialog .go,dialog .no{display:block;width:100%;font:700 16px Sora,system-ui,sans-serif;border:0;border-radius:12px;padding:14px;cursor:pointer}
+dialog .go{background:var(--eq);color:#fff;margin-bottom:8px}
+dialog .no{background:none;color:#4a5468;font-weight:500;font-size:14px}
+#note{min-height:20px;font-size:13px;color:#4a5468;margin:0 0 8px}
+@media (prefers-reduced-motion:reduce){dialog[open],.lcd.shake{animation:none}}
+</style>
+</head>
+<body>
+<main class="calc" aria-label="Kalkulator">
+  <div class="lcd" id="lcd">
+    <div id="status" aria-live="polite"></div>
+    <div id="screen" aria-label="Layar">0</div>
+  </div>
+  <div class="keys" id="keys">
+    <button class="clr" data-k="C" aria-label="Hapus semua">C</button>
+    <button class="clr" data-k="⌫" aria-label="Hapus satu karakter">⌫</button>
+    <button class="op" data-k="%">%</button>
+    <button class="op" data-k="÷" aria-label="Bagi">÷</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button class="op" data-k="×" aria-label="Kali">×</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button class="op" data-k="−" aria-label="Kurang">−</button>
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button class="op" data-k="+" aria-label="Tambah">+</button>
+    <button data-k="00">00</button><button data-k="0">0</button><button data-k=".">.</button>
+    <button class="eq" data-k="=" aria-label="Sama dengan">=</button>
+  </div>
+</main>
+
+<dialog id="pro" aria-labelledby="pro-title">
+  <span class="badge">PRO</span>
+  <h2 id="pro-title">Upgrade ke Pro untuk melihat hasil</h2>
+  <p>Hitungan Anda sudah siap. Buka hasilnya dengan paket Pro.</p>
+  <ul>
+    <li>Hasil perhitungan tampil penuh</li>
+    <li>Tanpa batas jumlah angka</li>
+    <li>Riwayat hitungan tersimpan</li>
+  </ul>
+  <p class="price">Rp 49.000 <small>/ bulan</small></p>
+  <p id="note" aria-live="polite"></p>
+  <button class="go" id="go">Upgrade ke Pro</button>
+  <button class="no" id="no">Nanti saja</button>
+</dialog>
+
+<script>
+(function(){
+  var screen=document.getElementById('screen'), status=document.getElementById('status'),
+      lcd=document.getElementById('lcd'), dlg=document.getElementById('pro'), note=document.getElementById('note');
+  var expr='', locked=false, OPS='+−×÷';
+
+  function render(){
+    screen.textContent=expr||'0';
+    var len=(expr||'0').length;
+    screen.style.fontSize=len>14?'22px':len>9?'30px':'44px';
+    status.textContent=locked?'Hasil: 🔒 hanya untuk Pro':'';
+  }
+  function isOp(c){return OPS.indexOf(c)>-1}
+  function currentNumber(){var m=expr.match(/[\d.]*$/);return m?m[0]:''}
+
+  function valid(){
+    if(!expr||isOp(expr.slice(-1)))return false;
+    var js=expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/%/g,'/100');
+    if(!/^[\d+\-*/.\s]+$/.test(js))return false;
+    try{var r=new Function('return ('+js+')')();return typeof r==='number'}catch(e){return false}
+  }
+
+  function press(k){
+    if(k==='C'){expr='';locked=false;return render()}
+    if(k==='⌫'){expr=expr.slice(0,-1);locked=false;return render()}
+    if(k==='='){
+      if(!valid()){lcd.classList.remove('shake');void lcd.offsetWidth;lcd.classList.add('shake');return}
+      locked=true;render();note.textContent='';
+      if(!dlg.open)dlg.showModal();
+      return;
+    }
+    if(locked){ if(!isOp(k)&&k!=='%') expr=''; locked=false; }
+    if(isOp(k)){
+      if(!expr){ if(k==='−')expr='−'; return render() }
+      if(isOp(expr.slice(-1))) expr=expr.slice(0,-1)+k; else if(expr!=='−') expr+=k;
+      return render();
+    }
+    if(k==='%'){
+      if(expr&&/[\d]$/.test(expr)) expr+='%';
+      return render();
+    }
+    if(k==='.'){
+      if(currentNumber().indexOf('.')>-1||expr.slice(-1)==='%')return;
+      expr+=(currentNumber()===''?'0.':'.');return render();
+    }
+    if(expr.slice(-1)==='%')return;
+    if(k==='00'&&(currentNumber()===''||currentNumber()==='0'))return;
+    if(k==='0'&&currentNumber()==='0')return;
+    if(/^0$/.test(currentNumber())&&k!=='.'&&k!=='00') expr=expr.slice(0,-1);
+    if(expr.length>=30)return;
+    expr+=k;render();
+  }
+
+  document.getElementById('keys').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(b)press(b.dataset.k);
+  });
+  document.addEventListener('keydown',function(e){
+    if(dlg.open)return;
+    var k=e.key;
+    if(/^[0-9.]$/.test(k))press(k);
+    else if(k==='+')press('+');
+    else if(k==='-')press('−');
+    else if(k==='*'||k==='x')press('×');
+    else if(k==='/'){e.preventDefault();press('÷')}
+    else if(k==='%')press('%');
+    else if(k==='Enter'||k==='='){e.preventDefault();press('=')}
+    else if(k==='Backspace')press('⌫');
+    else if(k==='Escape'||k==='Delete')press('C');
+  });
+
+  document.getElementById('no').addEventListener('click',function(){dlg.close()});
+  document.getElementById('go').addEventListener('click',function(){
+    note.textContent='Bayar ke Admin untuk melihat hasilnya.';
+  });
+  dlg.addEventListener('click',function(e){if(e.target===dlg)dlg.close()});
+  render();
+})();
+</script>
+</body>
+</html>
